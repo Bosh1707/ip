@@ -17,6 +17,18 @@ public class Parser {
             tasks.unmark(idx);
             return;
         }
+        if (line.equals("delete")) {
+            throw new BoshException("Usage: delete <task-number>");
+        }
+        if (line.startsWith("delete ")) {
+            int idx = parsePositiveIndex(line.substring(7).trim());
+            if (idx < 1 || idx > tasks.size()) {
+                throw new BoshException("No task #" + idx + " exists.");
+            }
+            tasks.delete(idx);
+            return;
+        }
+
         if (line.equals("todo")) {
             throw new EmptyDescriptionException("todo");
         }

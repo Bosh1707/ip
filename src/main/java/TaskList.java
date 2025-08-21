@@ -40,5 +40,19 @@ public class TaskList {
         Ui.box("OK! Marked as not done:", "  " + t);
     }
 
+    public void delete(int oneBasedIndex) throws BoshException {
+        if (oneBasedIndex < 1 || oneBasedIndex > tasks.size()) {
+            throw new IndexOutOfRangeException(oneBasedIndex); // or your generic DukeException
+        }
+        Task removed = tasks.remove(oneBasedIndex - 1);
+        Ui.box(
+                "Noted. I've removed this task:",
+                "  " + removed,
+                "Now you have " + tasks.size() + " tasks in the list."
+        );
+    }
 
+    public int size() {
+        return tasks.size();
+    }
 }
