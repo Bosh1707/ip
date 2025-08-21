@@ -22,22 +22,22 @@ public class TaskList {
         System.out.println(line);
     }
 
-    public void mark(int index) {
+    public void mark(int index) throws BoshException {
+        if (index < 1 || index > tasks.size()) {
+            throw new IndexOutOfRangeException(index);
+        }
         Task t = tasks.get(index - 1);
         t.markAsDone();
-        System.out.println(line);
-        System.out.println("Nice! I've marked this task as done:");
-        System.out.println(t);
-        System.out.println(line);
+        Ui.box("Nice! Marked as done:", "  " + t);
     }
 
-    public void unmark(int index) {
+    public void unmark(int index) throws BoshException {
+        if (index < 1 || index > tasks.size()) {
+            throw new IndexOutOfRangeException(index);
+        }
         Task t = tasks.get(index - 1);
         t.markAsUndone();
-        System.out.println(line);
-        System.out.println("OK, I've marked this task as not done yet:");
-        System.out.println(t);
-        System.out.println(line);
+        Ui.box("OK! Marked as not done:", "  " + t);
     }
 
 

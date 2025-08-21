@@ -1,56 +1,80 @@
 public class Parser {
-    public static void handle(String input, TaskList tasks) {
-        if (input.equals("list")) {
+    public static void handle(String line, TaskList tasks) throws BoshException {
+        if (line.isEmpty()) {
+            throw new UnknownCommandException("(empty line)");
+        }
+        if (line.equals("list")) {
             tasks.list();
             return;
         }
-        if (input.startsWith("mark ")) {
-            int idx = Integer.parseInt(input.substring(5).trim());
+        if (line.startsWith("mark ")) {
+            int idx = parsePositiveIndex(line.substring(5).trim());
             tasks.mark(idx);
             return;
         }
-        if (input.startsWith("unmark ")) {
-            int idx = Integer.parseInt(input.substring(7).trim());
+        if (line.startsWith("unmark ")) {
+            int idx = parsePositiveIndex(line.substring(7).trim());
             tasks.unmark(idx);
             return;
         }
-        if (input.startsWith("todo ")) {
-            String desc = input.substring(5).trim();
+        if (line.equals("todo")) {
+            throw new EmptyDescriptionException("todo");
+        }
+        if (line.startsWith("todo ")) {
+            String desc = line.substring(5).trim();
+            if (desc.isEmpty()) throw new EmptyDescriptionException("todo");
             tasks.add(new Todo(desc));
             return;
         }
-        if (input.startsWith("deadline ")) {
-            String rest = input.substring(9).trim();
+        if (line.equals("deadline")) {
+            throw new MissingArgumentException("Usage: deadline <desc> /by <time>");
+        }
+        if (line.startsWith("deadline ")) {
+            String rest = line.substring(9).trim();
             int byIdx = rest.indexOf("/by");
             if (byIdx == -1) {
-                System.out.println("____________________________________________________________");
-                System.out.println("OOPS: deadline needs '/by <time>'");
-                System.out.println("____________________________________________________________");
-                return;
+                throw new MissingArgumentException("Missing \"/by\". Example: deadline return book /by Sunday");
             }
             String desc = rest.substring(0, byIdx).trim();
-            String by = rest.substring(byIdx + 3).trim(); // after "/by"
+            String by = rest.substring(byIdx + 3).trim();
+            if (desc.isEmpty()) throw new EmptyDescriptionException("deadline");
+            if (by.isEmpty()) throw new MissingArgumentException("Please specify a time after /by.");
             tasks.add(new Deadline(desc, by));
             return;
         }
-        if (input.startsWith("event ")) {
-            String rest = input.substring(6).trim();
+        if (line.equals("event")) {
+            throw new MissingArgumentException("Usage: event <desc> /from <start> /to <end>");
+        }
+        if (line.startsWith("event ")) {
+            String rest = line.substring(6).trim();
             int fromIdx = rest.indexOf("/from");
             int toIdx = rest.indexOf("/to");
             if (fromIdx == -1 || toIdx == -1 || toIdx < fromIdx) {
-                System.out.println("____________________________________________________________");
-                System.out.println("OOPS: event needs '/from <start> /to <end>'");
-                System.out.println("____________________________________________________________");
-                return;
+                throw new MissingArgumentException("Event needs both /from and /to. Example: event meeting /from Mon 2pm /to 4pm");
             }
             String desc = rest.substring(0, fromIdx).trim();
             String from = rest.substring(fromIdx + 5, toIdx).trim();
             String to = rest.substring(toIdx + 3).trim();
+            if (desc.isEmpty()) throw new EmptyDescriptionException("event");
+            if (from.isEmpty() || to.isEmpty()) {
+                throw new MissingArgumentException("Both start and end times are required.");
+            }
             tasks.add(new Event(desc, from, to));
             return;
         }
 
         // Fallback: treat as a plain task add (Level-2 behavior)
-        tasks.add(new Todo(input));
+        tasks.add(new Todo(line));
+    }
+
+    private static int parsePositiveIndex(String s) throws BoshException {
+        try {
+            int idx = Integer.parseInt(s);
+            if (idx <= 0) throw new NumberFormatException();
+            return idx;
+        } catch (NumberFormatException e) {
+            throw new BoshException("Please give a valid positive task number.");
+        }
     }
 }
+

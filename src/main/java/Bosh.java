@@ -7,21 +7,22 @@ public class Bosh {
         Scanner sc = new Scanner(System.in);
         TaskList tasks = new TaskList();
 
-        System.out.println(line);
-        System.out.println(" Hello! I'm Bosh");
-        System.out.println(" What can I do for you?");
-        System.out.println(line);
+        Ui.box("Hello! I'm Duke", "What can I do for you?");
 
         while (sc.hasNextLine()) {
             String input = sc.nextLine().trim();
 
             if (input.equals("bye")) {
-                System.out.println(line);
-                System.out.println("Bye. Hope to see you again soon!");
-                System.out.println(line);
+                Ui.box("Bye. Hope to see you again soon!");
                 break;
-            } else {
+            }
+            try {
                 Parser.handle(input, tasks);
+            } catch (BoshException e) {
+                Ui.error(e.getMessage());
+            } catch (Exception e) {
+                // Safety net: unexpected errors
+                Ui.error("Uh oh, something went wrong: " + e.getClass().getSimpleName());
             }
         }
     }
