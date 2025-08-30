@@ -1,8 +1,20 @@
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class TaskList {
     private final ArrayList<Task> tasks = new ArrayList<>();
     private static final String line = "____________________________________________________________";
+    private final Storage storage;
+
+    // default (no auto-save)
+    public TaskList() { this.storage = null; }
+
+    // Level-7: preloaded tasks + storage to persist
+    public TaskList(List<Task> initial, Storage storage) {
+        this.tasks.addAll(initial);
+        this.storage = storage;
+    }
 
     public void add(Task t) {
         tasks.add(t);
@@ -11,6 +23,7 @@ public class TaskList {
         System.out.println(t);
         System.out.println("Now you have " + tasks.size() + " tasks in the list.");
         System.out.println(line);
+        persist();
     }
 
     public void list() {
@@ -29,6 +42,7 @@ public class TaskList {
         Task t = tasks.get(index - 1);
         t.markAsDone();
         Ui.box("Nice! Marked as done:", "  " + t);
+        persist();
     }
 
     public void unmark(int index) throws BoshException {
@@ -38,11 +52,12 @@ public class TaskList {
         Task t = tasks.get(index - 1);
         t.markAsUndone();
         Ui.box("OK! Marked as not done:", "  " + t);
+        persist();
     }
 
     public void delete(int oneBasedIndex) throws BoshException {
         if (oneBasedIndex < 1 || oneBasedIndex > tasks.size()) {
-            throw new IndexOutOfRangeException(oneBasedIndex); // or your generic DukeException
+            throw new IndexOutOfRangeException(oneBasedIndex);
         }
         Task removed = tasks.remove(oneBasedIndex - 1);
         Ui.box(
@@ -50,9 +65,19 @@ public class TaskList {
                 "  " + removed,
                 "Now you have " + tasks.size() + " tasks in the list."
         );
+        persist();
     }
 
     public int size() {
         return tasks.size();
+    }
+
+    private void persist() {
+        if (storage == null) return;
+        try {
+            storage.save(tasks);
+        } catch (IOException e) {
+            Ui.error("Could not save tasks: " + e.getMessage());
+        }
     }
 }
