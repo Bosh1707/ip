@@ -2,7 +2,6 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Bosh {
-    private static final String line = "____________________________________________________________";
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
