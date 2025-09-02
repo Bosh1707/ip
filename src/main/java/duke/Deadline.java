@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 public class Deadline extends Task {
     // Keep original input in case it isn't a valid date
@@ -13,8 +14,8 @@ public class Deadline extends Task {
 
     private static final DateTimeFormatter IN_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter IN_DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm");
-    private static final DateTimeFormatter OUT_DATE = DateTimeFormatter.ofPattern("MMM d yyyy");
-    private static final DateTimeFormatter OUT_DATE_TIME = DateTimeFormatter.ofPattern("MMM d yyyy h:mma");
+    private static final DateTimeFormatter OUT_DATE = DateTimeFormatter.ofPattern("MMM d yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter OUT_DATE_TIME = DateTimeFormatter.ofPattern("MMM d yyyy h:mma", Locale.ENGLISH);
 
     public Deadline(String description, String by) {
         super(description, TaskType.DEADLINE); // or remove TaskType if you're not using enums
@@ -49,11 +50,11 @@ public class Deadline extends Task {
     public String toString() {
         String pretty;
         if (dateTime != null) {
-            pretty = dateTime.format(OUT_DATE_TIME);
+            pretty = dateTime.format(OUT_DATE_TIME); // "Oct 15 2019 6:00PM"
         } else if (date != null) {
-            pretty = date.format(OUT_DATE);
+            pretty = date.format(OUT_DATE); // "Oct 15 2019"
         } else {
-            pretty = byRaw; // not a recognized date format -> show original
+            pretty = byRaw; // not a recognized date format -> show original (fallback)
         }
         return super.toString() + " (by: " + pretty + ")";
     }
