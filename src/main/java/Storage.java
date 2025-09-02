@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Storage {
     private final Path dir = Paths.get("data");
-    private final Path file = dir.resolve("bosh.txt"); // keep your chosen filename
+    private final Path file = dir.resolve("bosh.txt");
 
     public List<Task> load() throws IOException {
         List<Task> out = new ArrayList<>();

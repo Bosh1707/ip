@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 public class Deadline extends Task {
-    // Keep original input in case it isn't a valid date (for backward-compat)
+    // Keep original input in case it isn't a valid date
     protected String byRaw;
     protected LocalDate date;          // if user typed yyyy-MM-dd
     protected LocalDateTime dateTime;  // if user typed yyyy-MM-dd HHmm
@@ -20,7 +20,6 @@ public class Deadline extends Task {
         parseIntoFields(this.byRaw);
     }
 
-    // If you prefer to enforce format strictly, you could throw your BoshException here.
     private void parseIntoFields(String s) {
         if (s.isEmpty()) return;
         // Try datetime first (yyyy-MM-dd HHmm)
@@ -33,11 +32,11 @@ public class Deadline extends Task {
         try {
             date = LocalDate.parse(s, IN_DATE);
         } catch (DateTimeParseException ignore) {
-            // leave both null; we’ll print the raw string as before
+            // leave both null;
         }
     }
 
-    // For Storage: always serialize to a canonical ISO string if we parsed it, else the raw input
+    // For Storage
     public String storageBy() {
         if (dateTime != null) return dateTime.format(IN_DATE_TIME); // yyyy-MM-dd HHmm
         if (date != null) return date.format(IN_DATE);              // yyyy-MM-dd
@@ -52,7 +51,7 @@ public class Deadline extends Task {
         } else if (date != null) {
             pretty = date.format(OUT_DATE);
         } else {
-            pretty = byRaw; // not a recognized date format ⇒ show original
+            pretty = byRaw; // not a recognized date format -> show original
         }
         return super.toString() + " (by: " + pretty + ")";
     }
