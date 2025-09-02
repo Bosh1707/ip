@@ -1,3 +1,5 @@
+package duke;
+
 public class Ui {
     public static void box(String... lines) {
         System.out.println("    ____________________________________________________________");

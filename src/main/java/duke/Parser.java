@@ -1,3 +1,5 @@
+package duke;
+
 public class Parser {
     public static void handle(String line, TaskList tasks) throws BoshException {
         if (line.isEmpty()) {
