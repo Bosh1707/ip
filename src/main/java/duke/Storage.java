@@ -6,10 +6,20 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Handles loading tasks from disk and saving tasks to disk using a simple line format.
+ * Ensures the data directory exists and tolerates a missing file on first run.
+ */
 public class Storage {
     private final Path dir = Paths.get("data");
     private final Path file = dir.resolve("bosh.txt");
 
+    /**
+     * Loads tasks from the data file.
+     *
+     * @return list of tasks loaded (possibly empty)
+     * @throws IOException if the file cannot be read or created
+     */
     public List<Task> load() throws IOException {
         List<Task> out = new ArrayList<>();
         if (Files.notExists(dir)) Files.createDirectories(dir);
@@ -50,6 +60,12 @@ public class Storage {
         return out;
     }
 
+    /**
+     * Persists the given list of tasks to the data file.
+     *
+     * @param tasks tasks to persist
+     * @throws IOException if the file cannot be written
+     */
     public void save(List<Task> tasks) throws IOException {
         if (Files.notExists(dir)) Files.createDirectories(dir);
         List<String> lines = new ArrayList<>();
@@ -60,6 +76,12 @@ public class Storage {
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
+    /**
+     * String builder based on task t
+     *
+     * @param t tasks to serialize
+     * @return serialized tasks
+     */
     private String serialize(Task t) {
         String done = t.isDone ? "1" : "0";
         if (t instanceof Todo) {

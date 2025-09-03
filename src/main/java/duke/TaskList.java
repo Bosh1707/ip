@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Manages the in-memory list of tasks and coordinates persistence.
+ * Provides operations to add, list, mark, unmark, delete, and find tasks.
+ */
 public class TaskList {
     private final ArrayList<Task> tasks = new ArrayList<>();
     private static final String line = "____________________________________________________________";
@@ -18,6 +22,11 @@ public class TaskList {
         this.storage = storage;
     }
 
+    /**
+     * Adds a task to the end of the list and prints confirmation.
+     *
+     * @param t task to add
+     */
     public void add(Task t) {
         tasks.add(t);
         System.out.println(line);
@@ -28,6 +37,9 @@ public class TaskList {
         persist();
     }
 
+    /**
+     * Lists all tasks to standard output in a numbered format.
+     */
     public void list() {
         System.out.println(line);
         System.out.println("Here are the tasks in your list: ");
@@ -37,6 +49,12 @@ public class TaskList {
         System.out.println(line);
     }
 
+    /**
+     * Marks the given 1-based index as done.
+     *
+     * @param index 1-based task index
+     * @throws BoshException if the index is out of range
+     */
     public void mark(int index) throws BoshException {
         if (index < 1 || index > tasks.size()) {
             throw new IndexOutOfRangeException(index);
@@ -47,6 +65,12 @@ public class TaskList {
         persist();
     }
 
+    /**
+     * Unmarks the given 1-based index as not done.
+     *
+     * @param index 1-based task index
+     * @throws BoshException if the index is out of range
+     */
     public void unmark(int index) throws BoshException {
         if (index < 1 || index > tasks.size()) {
             throw new IndexOutOfRangeException(index);
@@ -57,6 +81,12 @@ public class TaskList {
         persist();
     }
 
+    /**
+     * Deletes the task at the given 1-based index.
+     *
+     * @param oneBasedIndex 1-based task index
+     * @throws BoshException if the index is out of range
+     */
     public void delete(int oneBasedIndex) throws BoshException {
         if (oneBasedIndex < 1 || oneBasedIndex > tasks.size()) {
             throw new IndexOutOfRangeException(oneBasedIndex);

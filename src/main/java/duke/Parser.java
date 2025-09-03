@@ -1,6 +1,18 @@
 package duke;
 
+/**
+ * Parses user input lines and dispatches to task operations.
+ * Throws BoshException for invalid or incomplete commands.
+ */
 public class Parser {
+
+    /**
+     * Handles a single input line by mutating the given TaskList and printing output.
+     *
+     * @param line raw user input
+     * @param tasks task list to operate on
+     * @throws BoshException for invalid inputs
+     */
     public static void handle(String line, TaskList tasks) throws BoshException {
         if (line.isEmpty()) {
             throw new UnknownCommandException("(empty line)");
