@@ -88,6 +88,15 @@ public class Parser {
             tasks.add(new Event(desc, from, to));
             return;
         }
+        if (line.equals("find")) {
+            throw new BoshException("Usage: find <keyword>");
+        }
+        if (line.startsWith("find ")) {
+            String keyword = line.substring(5).trim();
+            if (keyword.isEmpty()) throw new BoshException("Usage: find <keyword>");
+            tasks.find(keyword);
+            return;
+        }
 
         // Fallback: treat as a plain task add (Level-2 behavior)
         tasks.add(new Todo(line));

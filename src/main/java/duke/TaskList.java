@@ -100,6 +100,25 @@ public class TaskList {
         persist();
     }
 
+    public void find(String keyword) throws BoshException {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BoshException("Usage: find <keyword>");
+        }
+        String key = keyword.toLowerCase();
+        java.util.List<Task> hits = new java.util.ArrayList<>();
+        for (Task t : tasks) {
+            if (t.getDescription().toLowerCase().contains(key)) {
+                hits.add(t);
+            }
+        }
+        System.out.println("____________________________________________________________");
+        System.out.println("Here are the matching tasks in your list:");
+        for (int i = 0; i < hits.size(); i++) {
+            System.out.println((i + 1) + "." + hits.get(i));
+        }
+        System.out.println("____________________________________________________________");
+    }
+
     public int size() {
         return tasks.size();
     }
