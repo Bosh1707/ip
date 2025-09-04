@@ -6,7 +6,7 @@ import java.util.List;
 
 public class TaskList {
     private final ArrayList<Task> tasks = new ArrayList<>();
-    private static final String line = "____________________________________________________________";
+    private static final String LINE = "____________________________________________________________";
     private final Storage storage;
 
     // default (no auto-save)
@@ -20,21 +20,21 @@ public class TaskList {
 
     public void add(Task t) {
         tasks.add(t);
-        System.out.println(line);
+        System.out.println(LINE);
         System.out.println("Got it. I've added this task:");
         System.out.println(t);
         System.out.println("Now you have " + tasks.size() + " tasks in the list.");
-        System.out.println(line);
+        System.out.println(LINE);
         persist();
     }
 
     public void list() {
-        System.out.println(line);
+        System.out.println(LINE);
         System.out.println("Here are the tasks in your list: ");
         for (int i = 0; i < tasks.size(); i++) {
             System.out.println((i + 1) + "." + tasks.get(i));
         }
-        System.out.println(line);
+        System.out.println(LINE);
     }
 
     public void mark(int index) throws BoshException {
