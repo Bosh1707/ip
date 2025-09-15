@@ -14,7 +14,9 @@ public class TaskList {
     private final Storage storage;
 
     // default (no auto-save)
-    public TaskList() { this.storage = null; }
+    public TaskList() {
+        this.storage = null;
+    }
 
     // Level-7: preloaded tasks + storage to persist
     public TaskList(List<Task> initial, Storage storage) {
@@ -100,6 +102,12 @@ public class TaskList {
         persist();
     }
 
+    /**
+     * Finds and displays tasks containing the given keyword.
+     *
+     * @param keyword search keyword
+     * @throws BoshException if keyword is null or empty
+     */
     public void find(String keyword) throws BoshException {
         if (keyword == null || keyword.trim().isEmpty()) {
             throw new BoshException("Usage: find <keyword>");
