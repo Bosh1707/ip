@@ -14,6 +14,9 @@ public class Parser {
      * @throws BoshException for invalid inputs
      */
     public static void handle(String line, TaskList tasks) throws BoshException {
+        assert line != null : "Input line cannot be null";
+        assert tasks != null : "TaskList cannot be null";
+
         if (line.isEmpty()) {
             throw new UnknownCommandException("(empty line)");
         }
@@ -23,11 +26,13 @@ public class Parser {
         }
         if (line.startsWith("mark ")) {
             int idx = parsePositiveIndex(line.substring(5).trim());
+            assert idx > 0 : "Index must be positive after parsing";
             tasks.mark(idx);
             return;
         }
         if (line.startsWith("unmark ")) {
             int idx = parsePositiveIndex(line.substring(7).trim());
+            assert idx > 0 : "Index must be positive after parsing";
             tasks.unmark(idx);
             return;
         }
@@ -36,6 +41,7 @@ public class Parser {
         }
         if (line.startsWith("delete ")) {
             int idx = parsePositiveIndex(line.substring(7).trim());
+            assert idx > 0 : "Index must be positive after parsing";
             if (idx < 1 || idx > tasks.size()) {
                 throw new BoshException("No task #" + idx + " exists.");
             }
@@ -85,6 +91,10 @@ public class Parser {
             if (from.isEmpty() || to.isEmpty()) {
                 throw new MissingArgumentException("Both start and end times are required.");
             }
+
+            assert !desc.isEmpty() : "Event description should not be empty";
+            assert !from.isEmpty() : "Event 'from' time should not be empty";
+            assert !to.isEmpty() : "Event 'to' time should not be empty";
             tasks.add(new Event(desc, from, to));
             return;
         }
@@ -94,6 +104,7 @@ public class Parser {
         if (line.startsWith("find ")) {
             String keyword = line.substring(5).trim();
             if (keyword.isEmpty()) throw new BoshException("Usage: find <keyword>");
+            assert !keyword.isEmpty() : "Keyword should not be empty at this point";
             tasks.find(keyword);
             return;
         }
@@ -106,6 +117,7 @@ public class Parser {
         try {
             int idx = Integer.parseInt(s);
             if (idx <= 0) throw new NumberFormatException();
+            assert idx > 0 : "Parsed index must be positive";
             return idx;
         } catch (NumberFormatException e) {
             throw new BoshException("Please give a valid positive task number.");
