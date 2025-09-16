@@ -119,7 +119,9 @@ public class Main extends Application {
                 "mark <number>\n" +
                 "delete <number>\n" +
                 "find <keyword>\n" +
-                "bye";
+                "help\n" +
+                "bye\n";
+
 
         dialogContainer.getChildren().add(
                 DialogBox.getBoshDialog(instructions, boshImage)

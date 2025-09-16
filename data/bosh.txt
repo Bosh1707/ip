@@ -1,6 +1,6 @@
-T | 0 | talk to friends
-D | 1 | return book | Sunday
-E | 1 | meeting | 2pm | 4pm
-D | 0 | return book | 2019-10-15
-T | 0 | return book
+T | 0 | finish cs2103t iP
 T | 0 | help
+E | 0 | meeting | 2pm | 4pm
+T | 0 | return book
+D | 0 | return book | 2019-10-15
+T | 0 | talk to friends
