@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Handles loading tasks from disk and saving tasks to disk using a simple line format.
@@ -21,43 +22,20 @@ public class Storage {
      * @throws IOException if the file cannot be read or created
      */
     public List<Task> load() throws IOException {
-        List<Task> out = new ArrayList<>();
-        if (Files.notExists(dir)) Files.createDirectories(dir);
-        if (Files.notExists(file)) return out; // first run
-
-        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-        for (String raw : lines) {
-            if (raw.trim().isEmpty()) continue;
-            // Formats:
-            // T | 1 | desc
-            // D | 0 | desc | yyyy-MM-dd  OR  yyyy-MM-dd HHmm  OR legacy string
-            // E | 1 | desc | from | to   (left as string for L8 minimal)
-            try {
-                String[] p = raw.split("\\s*\\|\\s*");
-                String type = p[0];
-                boolean done = "1".equals(p[1]);
-
-                Task t;
-                switch (type) {
-                    case "T":
-                        t = new Todo(p[2]);
-                        break;
-                    case "D":
-                        t = new Deadline(p[2], p[3]); // constructor handles both ISO and legacy
-                        break;
-                    case "E":
-                        t = new Event(p[2], p[3], p[4]);
-                        break;
-                    default:
-                        continue; // skip unknown lines
-                }
-                if (done) t.markAsDone();
-                out.add(t);
-            } catch (Exception ignore) {
-                // Stretch: log/box an error for corrupted lines
-            }
+        if (Files.notExists(dir)) {
+            Files.createDirectories(dir);
         }
-        return out;
+        if (Files.notExists(file)) {
+            return new ArrayList<>(); // first run
+        }
+
+        return Files.readAllLines(file, StandardCharsets.UTF_8)
+                .stream()
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .map(this::parseTaskFromLine)
+                .filter(task -> task != null) // Filter out failed parses
+                .collect(Collectors.toList());
     }
 
     /**
@@ -67,13 +45,60 @@ public class Storage {
      * @throws IOException if the file cannot be written
      */
     public void save(List<Task> tasks) throws IOException {
-        if (Files.notExists(dir)) Files.createDirectories(dir);
-        List<String> lines = new ArrayList<>();
-        for (Task t : tasks) {
-            lines.add(serialize(t));
+        if (Files.notExists(dir)) {
+            Files.createDirectories(dir);
         }
+
+        List<String> lines = tasks.stream()
+                .map(this::serialize)
+                .collect(Collectors.toList());
+
         Files.write(file, lines, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    /**
+     * Parses a single line into a Task object.
+     *
+     * @param line the line to parse
+     * @return parsed Task or null if parsing fails
+     */
+    private Task parseTaskFromLine(String line) {
+        try {
+            String[] parts = line.split("\\s*\\|\\s*");
+            if (parts.length < 3) {
+                return null; // Invalid format
+            }
+
+            String type = parts[0];
+            boolean isDone = "1".equals(parts[1]);
+            String description = parts[2];
+
+            Task task = createTaskFromParts(type, description, parts);
+            if (task != null && isDone) {
+                task.markAsDone();
+            }
+            return task;
+        } catch (Exception e) {
+            // Log error in a real application
+            return null; // Skip corrupted lines
+        }
+    }
+
+    /**
+     * Creates a task based on the parsed parts.
+     */
+    private Task createTaskFromParts(String type, String description, String[] parts) {
+        switch (type) {
+            case "T":
+                return new Todo(description);
+            case "D":
+                return parts.length >= 4 ? new Deadline(description, parts[3]) : null;
+            case "E":
+                return parts.length >= 5 ? new Event(description, parts[3], parts[4]) : null;
+            default:
+                return null; // Unknown task type
+        }
     }
 
     /**
@@ -93,6 +118,8 @@ public class Storage {
             Event e = (Event) t;
             return String.join(" | ", "E", done, e.description, e.from, e.to);
         }
+
+        // Fallback for unknown task types
         return String.join(" | ", "T", done, t.description);
     }
 }
