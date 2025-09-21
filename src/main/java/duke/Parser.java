@@ -8,123 +8,247 @@ public class Parser {
 
     /**
      * Handles a single input line by mutating the given TaskList and printing output.
+     * Applies Single Level of Abstraction Principle (SLAP) for better readability.
      *
      * @param line raw user input
      * @param tasks task list to operate on
      * @throws BoshException for invalid inputs
      */
     public static void handle(String line, TaskList tasks) throws BoshException {
-        assert line != null : "Input line cannot be null";
-        assert tasks != null : "TaskList cannot be null";
+        validateInput(line, tasks);
 
         if (line.isEmpty()) {
             throw new UnknownCommandException("(empty line)");
         }
-        if (line.equals("list")) {
-            tasks.list();
+
+        // Handle single-word commands first
+        if (handleSingleWordCommands(line, tasks)) {
             return;
         }
-        if (line.equals("sort")) {
-            tasks.sortByDescription();
+
+        // Handle commands with arguments
+        if (handleCommandsWithArguments(line, tasks)) {
             return;
         }
+
+        // Fallback: treat as todo task (Level-2 behavior)
+        tasks.add(new Todo(line));
+    }
+
+    /**
+     * Validates input parameters according to preconditions.
+     */
+    private static void validateInput(String line, TaskList tasks) {
+        assert line != null : "Input line cannot be null";
+        assert tasks != null : "TaskList cannot be null";
+    }
+
+    /**
+     * Handles commands that don't require arguments.
+     *
+     * @return true if command was handled, false otherwise
+     */
+    private static boolean handleSingleWordCommands(String line, TaskList tasks) throws BoshException {
+        switch (line) {
+            case "list":
+                tasks.list();
+                return true;
+            case "sort":
+                tasks.sortByDescription();
+                return true;
+            case "help":
+                showHelp();
+                return true;
+            case "delete":
+                throw new BoshException("Usage: delete <task-number>");
+            case "todo":
+                throw new EmptyDescriptionException("todo");
+            case "deadline":
+                throw new MissingArgumentException("Usage: deadline <desc> /by <time>");
+            case "event":
+                throw new MissingArgumentException("Usage: event <desc> /from <start> /to <end>");
+            case "find":
+                throw new BoshException("Usage: find <keyword>");
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Handles commands that require arguments.
+     *
+     * @return true if command was handled, false otherwise
+     */
+    private static boolean handleCommandsWithArguments(String line, TaskList tasks) throws BoshException {
+        if (handleTaskManagementCommands(line, tasks)) return true;
+        if (handleTaskCreationCommands(line, tasks)) return true;
+        if (handleUtilityCommands(line, tasks)) return true;
+
+        return false;
+    }
+
+    /**
+     * Handles task management commands (mark, unmark, delete).
+     */
+    private static boolean handleTaskManagementCommands(String line, TaskList tasks) throws BoshException {
+        if (line.startsWith("mark ")) {
+            int idx = parsePositiveIndex(line.substring(5).trim());
+            tasks.mark(idx);
+            return true;
+        }
+
+        if (line.startsWith("unmark ")) {
+            int idx = parsePositiveIndex(line.substring(7).trim());
+            tasks.unmark(idx);
+            return true;
+        }
+
+        if (line.startsWith("delete ")) {
+            int idx = parsePositiveIndex(line.substring(7).trim());
+            validateTaskExists(idx, tasks);
+            tasks.delete(idx);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Handles task creation commands (todo, deadline, event).
+     */
+    private static boolean handleTaskCreationCommands(String line, TaskList tasks) throws BoshException {
+        if (line.startsWith("todo ")) {
+            handleTodoCommand(line, tasks);
+            return true;
+        }
+
+        if (line.startsWith("deadline ")) {
+            handleDeadlineCommand(line, tasks);
+            return true;
+        }
+
+        if (line.startsWith("event ")) {
+            handleEventCommand(line, tasks);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Handles utility commands (sort, find).
+     */
+    private static boolean handleUtilityCommands(String line, TaskList tasks) throws BoshException {
         if (line.startsWith("sort ")) {
             String sortBy = line.substring(5).trim();
             handleSortCommand(sortBy, tasks);
-            return;
-        }
-        if (line.startsWith("mark ")) {
-            int idx = parsePositiveIndex(line.substring(5).trim());
-            assert idx > 0 : "Index must be positive after parsing";
-            tasks.mark(idx);
-            return;
-        }
-        if (line.startsWith("unmark ")) {
-            int idx = parsePositiveIndex(line.substring(7).trim());
-            assert idx > 0 : "Index must be positive after parsing";
-            tasks.unmark(idx);
-            return;
-        }
-        if (line.equals("delete")) {
-            throw new BoshException("Usage: delete <task-number>");
-        }
-        if (line.startsWith("delete ")) {
-            int idx = parsePositiveIndex(line.substring(7).trim());
-            assert idx > 0 : "Index must be positive after parsing";
-            if (idx < 1 || idx > tasks.size()) {
-                throw new BoshException("No task #" + idx + " exists.");
-            }
-            tasks.delete(idx);
-            return;
+            return true;
         }
 
-        if (line.equals("todo")) {
-            throw new EmptyDescriptionException("todo");
-        }
-        if (line.startsWith("todo ")) {
-            String desc = line.substring(5).trim();
-            if (desc.isEmpty()) throw new EmptyDescriptionException("todo");
-            tasks.add(new Todo(desc));
-            return;
-        }
-        if (line.equals("deadline")) {
-            throw new MissingArgumentException("Usage: deadline <desc> /by <time>");
-        }
-        if (line.startsWith("deadline ")) {
-            String rest = line.substring(9).trim();
-            int byIdx = rest.indexOf("/by");
-            if (byIdx == -1) {
-                throw new MissingArgumentException("Missing \"/by\". Example: deadline return book /by Sunday");
-            }
-            String desc = rest.substring(0, byIdx).trim();
-            String by = rest.substring(byIdx + 3).trim();
-            if (desc.isEmpty()) throw new EmptyDescriptionException("deadline");
-            if (by.isEmpty()) throw new MissingArgumentException("Please specify a time after /by.");
-            tasks.add(new Deadline(desc, by));
-            return;
-        }
-        if (line.equals("event")) {
-            throw new MissingArgumentException("Usage: event <desc> /from <start> /to <end>");
-        }
-        if (line.startsWith("event ")) {
-            String rest = line.substring(6).trim();
-            int fromIdx = rest.indexOf("/from");
-            int toIdx = rest.indexOf("/to");
-            if (fromIdx == -1 || toIdx == -1 || toIdx < fromIdx) {
-                throw new MissingArgumentException("Event needs both /from and /to. Example: event meeting /from Mon 2pm /to 4pm");
-            }
-            String desc = rest.substring(0, fromIdx).trim();
-            String from = rest.substring(fromIdx + 5, toIdx).trim();
-            String to = rest.substring(toIdx + 3).trim();
-            if (desc.isEmpty()) throw new EmptyDescriptionException("event");
-            if (from.isEmpty() || to.isEmpty()) {
-                throw new MissingArgumentException("Both start and end times are required.");
-            }
-
-            assert !desc.isEmpty() : "Event description should not be empty";
-            assert !from.isEmpty() : "Event 'from' time should not be empty";
-            assert !to.isEmpty() : "Event 'to' time should not be empty";
-            tasks.add(new Event(desc, from, to));
-            return;
-        }
-        if (line.equals("find")) {
-            throw new BoshException("Usage: find <keyword>");
-        }
         if (line.startsWith("find ")) {
             String keyword = line.substring(5).trim();
-            if (keyword.isEmpty()) throw new BoshException("Usage: find <keyword>");
-            assert !keyword.isEmpty() : "Keyword should not be empty at this point";
+            validateKeyword(keyword);
             tasks.find(keyword);
-            return;
-        }
-        // Help command to show available commands
-        if (line.equals("help")) {
-            showHelp();
-            return;
+            return true;
         }
 
-        // Fallback: treat as a plain task add (Level-2 behavior)
-        tasks.add(new Todo(line));
+        return false;
+    }
+
+    /**
+     * Handles todo command creation with validation.
+     */
+    private static void handleTodoCommand(String line, TaskList tasks) throws BoshException {
+        String desc = line.substring(5).trim();
+        if (desc.isEmpty()) {
+            throw new EmptyDescriptionException("todo");
+        }
+        tasks.add(new Todo(desc));
+    }
+
+    /**
+     * Handles deadline command creation with validation.
+     */
+    private static void handleDeadlineCommand(String line, TaskList tasks) throws BoshException {
+        String rest = line.substring(9).trim();
+        int byIdx = rest.indexOf("/by");
+
+        if (byIdx == -1) {
+            throw new MissingArgumentException("Missing \"/by\". Example: deadline return book /by Sunday");
+        }
+
+        String desc = rest.substring(0, byIdx).trim();
+        String by = rest.substring(byIdx + 3).trim();
+
+        validateDeadlineInputs(desc, by);
+        tasks.add(new Deadline(desc, by));
+    }
+
+    /**
+     * Handles event command creation with validation.
+     */
+    private static void handleEventCommand(String line, TaskList tasks) throws BoshException {
+        String rest = line.substring(6).trim();
+        int fromIdx = rest.indexOf("/from");
+        int toIdx = rest.indexOf("/to");
+
+        if (fromIdx == -1 || toIdx == -1 || toIdx < fromIdx) {
+            throw new MissingArgumentException("Event needs both /from and /to. Example: event meeting /from Mon 2pm /to 4pm");
+        }
+
+        String desc = rest.substring(0, fromIdx).trim();
+        String from = rest.substring(fromIdx + 5, toIdx).trim();
+        String to = rest.substring(toIdx + 3).trim();
+
+        validateEventInputs(desc, from, to);
+        tasks.add(new Event(desc, from, to));
+    }
+
+    /**
+     * Validates deadline command inputs.
+     */
+    private static void validateDeadlineInputs(String desc, String by) throws BoshException {
+        if (desc.isEmpty()) {
+            throw new EmptyDescriptionException("deadline");
+        }
+        if (by.isEmpty()) {
+            throw new MissingArgumentException("Please specify a time after /by.");
+        }
+    }
+
+    /**
+     * Validates event command inputs.
+     */
+    private static void validateEventInputs(String desc, String from, String to) throws BoshException {
+        if (desc.isEmpty()) {
+            throw new EmptyDescriptionException("event");
+        }
+        if (from.isEmpty() || to.isEmpty()) {
+            throw new MissingArgumentException("Both start and end times are required.");
+        }
+
+        assert !desc.isEmpty() : "Event description should not be empty";
+        assert !from.isEmpty() : "Event 'from' time should not be empty";
+        assert !to.isEmpty() : "Event 'to' time should not be empty";
+    }
+
+    /**
+     * Validates that a keyword is not empty.
+     */
+    private static void validateKeyword(String keyword) throws BoshException {
+        if (keyword.isEmpty()) {
+            throw new BoshException("Usage: find <keyword>");
+        }
+        assert !keyword.isEmpty() : "Keyword should not be empty at this point";
+    }
+
+    /**
+     * Validates that a task exists at the given index.
+     */
+    private static void validateTaskExists(int idx, TaskList tasks) throws BoshException {
+        if (idx < 1 || idx > tasks.size()) {
+            throw new BoshException("No task #" + idx + " exists.");
+        }
     }
 
     /**
@@ -183,7 +307,13 @@ public class Parser {
         }
     }
 
-
+    /**
+     * Parses a string to a positive integer for task indexing.
+     *
+     * @param s string to parse
+     * @return positive integer
+     * @throws BoshException if string is not a valid positive integer
+     */
     private static int parsePositiveIndex(String s) throws BoshException {
         assert s != null : "Index string cannot be null";
 
