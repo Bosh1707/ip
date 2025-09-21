@@ -56,7 +56,7 @@ public class BoshGui {
         } catch (BoshException e) {
             return e.getMessage();
         } catch (Exception e) {
-            return "Uh oh, something went wrong with the niggers: " + e.getClass().getSimpleName();
+            return "Uh oh, something went wrong: " + e.getClass().getSimpleName();
         } finally {
             // Restore original streams
             System.setOut(originalOut);

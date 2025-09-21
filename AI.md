@@ -1,4 +1,4 @@
-AI Assistance Log (A-AiAssisted)
+# AI Assistance Log (A-AiAssisted)
 
 I used AI tools (mainly **ChatGPT** and **Claude**) to assist with most increments of this iP project.  
 The tools helped me in different ways: explaining concepts, suggesting code snippets, and providing debugging tips.  

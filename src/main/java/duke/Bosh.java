@@ -3,7 +3,13 @@ package duke;
 import java.util.List;
 import java.util.Scanner;
 
-
+/**
+ * Main class for the Bosh task management application.
+ * Handles user interaction loop, initializes core components, and manages application lifecycle.
+ * Includes comprehensive error handling for common failure scenarios.
+ *
+ * @author Joshua Rahul Tan Sreedharan
+ */
 public class Bosh {
 
     public static void main(String[] args) {
