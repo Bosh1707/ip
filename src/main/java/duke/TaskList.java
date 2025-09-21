@@ -8,48 +8,43 @@ import java.util.List;
 /**
  * Manages the in-memory list of tasks and coordinates persistence.
  * Provides operations to add, list, mark, unmark, delete, and find tasks.
- * Enhanced with sorting functionality.
+ * Enhanced with sorting functionality and improved separation of concerns.
  */
 public class TaskList {
     private final ArrayList<Task> tasks = new ArrayList<>();
-    private static final String LINE = "____________________________________________________________";
+    private static final String DIVIDER_LINE = "____________________________________________________________";
     private static final int FIRST_TASK_INDEX = 1;
     private final Storage storage;
 
-    // default (no auto-save)
+    // Default constructor (no auto-save)
     public TaskList() {
         this.storage = null;
     }
 
-    // Level-7: preloaded tasks + storage to persist
+    // Constructor with preloaded tasks and storage for persistence
     public TaskList(List<Task> initial, Storage storage) {
         this.tasks.addAll(initial);
         this.storage = storage;
     }
 
+    // ========== Public Task Management Methods ==========
+
     /**
      * Adds a task to the end of the list and prints confirmation.
      *
-     * @param t task to add
+     * @param task task to add
      */
-    public void add(Task t) {
-        tasks.add(t);
-        printAddConfirmation(t);
-        persist();
+    public void add(Task task) {
+        tasks.add(task);
+        displayAddConfirmation(task);
+        saveToStorage();
     }
 
     /**
      * Lists all tasks to standard output in a numbered format.
      */
     public void list() {
-        printDivider();
-        System.out.println("Here are the tasks in your list: ");
-
-        for (int i = 0; i < tasks.size(); i++) {
-            int displayIndex = i + FIRST_TASK_INDEX;
-            System.out.println(displayIndex + "." + tasks.get(i));
-        }
-        printDivider();
+        displayTaskList();
     }
 
     /**
@@ -59,12 +54,10 @@ public class TaskList {
      * @throws BoshException if the index is out of range
      */
     public void mark(int index) throws BoshException {
-        validateTaskIndex(index);
-
-        Task task = getTaskAtIndex(index);
+        Task task = getValidatedTask(index);
         task.markAsDone();
-        Ui.box("Nice! Marked as done:", "  " + task);
-        persist();
+        displayMarkConfirmation(task, true);
+        saveToStorage();
     }
 
     /**
@@ -74,12 +67,10 @@ public class TaskList {
      * @throws BoshException if the index is out of range
      */
     public void unmark(int index) throws BoshException {
-        validateTaskIndex(index);
-
-        Task task = getTaskAtIndex(index);
+        Task task = getValidatedTask(index);
         task.markAsUndone();
-        Ui.box("OK! Marked as not done:", "  " + task);
-        persist();
+        displayMarkConfirmation(task, false);
+        saveToStorage();
     }
 
     /**
@@ -90,10 +81,9 @@ public class TaskList {
      */
     public void delete(int oneBasedIndex) throws BoshException {
         validateTaskIndex(oneBasedIndex);
-
         Task removed = tasks.remove(oneBasedIndex - FIRST_TASK_INDEX);
-        printDeleteConfirmation(removed);
-        persist();
+        displayDeleteConfirmation(removed);
+        saveToStorage();
     }
 
     /**
@@ -103,29 +93,136 @@ public class TaskList {
      * @throws BoshException if keyword is null or empty
      */
     public void find(String keyword) throws BoshException {
-        if (isInvalidKeyword(keyword)) {
-            throw new BoshException("Usage: find <keyword>");
-        }
-
+        validateKeyword(keyword);
         List<Task> matchingTasks = findMatchingTasks(keyword);
-        printSearchResults(matchingTasks);
+        displaySearchResults(matchingTasks);
     }
+
+    // ========== Sorting Methods ==========
 
     /**
      * Sorts tasks alphabetically by description.
      */
     public void sortByDescription() {
-        tasks.sort(Comparator.comparing(task -> task.getDescription().toLowerCase()));
-        printSortConfirmation("description");
-        persist();
+        tasks.sort(createDescriptionComparator());
+        displaySortConfirmation("description");
+        saveToStorage();
     }
 
     /**
      * Sorts tasks by type (Todo, Deadline, Event).
      */
     public void sortByType() {
-        tasks.sort((t1, t2) -> {
-            // Define order: Todo < Deadline < Event
+        tasks.sort(createTypeComparator());
+        displaySortConfirmation("type");
+        saveToStorage();
+    }
+
+    /**
+     * Sorts tasks by deadline date. Tasks without dates come last.
+     */
+    public void sortByDeadline() {
+        tasks.sort(createDeadlineComparator());
+        displaySortConfirmation("deadline");
+        saveToStorage();
+    }
+
+    /**
+     * Sorts tasks by completion status (incomplete tasks first).
+     */
+    public void sortByStatus() {
+        tasks.sort(createStatusComparator());
+        displaySortConfirmation("status");
+        saveToStorage();
+    }
+
+    /**
+     * Returns the number of tasks in the list.
+     */
+    public int size() {
+        return tasks.size();
+    }
+
+    // ========== Private Validation Methods ==========
+
+    /**
+     * Validates and retrieves a task at the given index.
+     */
+    private Task getValidatedTask(int index) throws BoshException {
+        validateTaskIndex(index);
+        return getTaskAtIndex(index);
+    }
+
+    /**
+     * Validates that the given index is within valid range.
+     */
+    private void validateTaskIndex(int index) throws BoshException {
+        if (isInvalidIndex(index)) {
+            throw new IndexOutOfRangeException(index);
+        }
+    }
+
+    /**
+     * Checks if an index is out of valid range.
+     */
+    private boolean isInvalidIndex(int index) {
+        return index < FIRST_TASK_INDEX || index > tasks.size();
+    }
+
+    /**
+     * Retrieves task at the given 1-based index.
+     */
+    private Task getTaskAtIndex(int oneBasedIndex) {
+        return tasks.get(oneBasedIndex - FIRST_TASK_INDEX);
+    }
+
+    /**
+     * Validates that a keyword is not null or empty.
+     */
+    private void validateKeyword(String keyword) throws BoshException {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BoshException("Usage: find <keyword>");
+        }
+    }
+
+    // ========== Private Search Methods ==========
+
+    /**
+     * Finds all tasks that match the given keyword.
+     */
+    private List<Task> findMatchingTasks(String keyword) {
+        String lowerCaseKeyword = keyword.toLowerCase();
+        List<Task> matchingTasks = new ArrayList<>();
+
+        for (Task task : tasks) {
+            if (taskContainsKeyword(task, lowerCaseKeyword)) {
+                matchingTasks.add(task);
+            }
+        }
+        return matchingTasks;
+    }
+
+    /**
+     * Checks if a task's description contains the keyword.
+     */
+    private boolean taskContainsKeyword(Task task, String lowerCaseKeyword) {
+        return task.getDescription().toLowerCase().contains(lowerCaseKeyword);
+    }
+
+    // ========== Private Comparator Factory Methods ==========
+
+    /**
+     * Creates a comparator for sorting by description.
+     */
+    private Comparator<Task> createDescriptionComparator() {
+        return Comparator.comparing(task -> task.getDescription().toLowerCase());
+    }
+
+    /**
+     * Creates a comparator for sorting by task type.
+     */
+    private Comparator<Task> createTypeComparator() {
+        return (t1, t2) -> {
             int priority1 = getTypePriority(t1);
             int priority2 = getTypePriority(t2);
 
@@ -134,88 +231,47 @@ public class TaskList {
             }
             // If same type, sort by description
             return t1.getDescription().compareToIgnoreCase(t2.getDescription());
-        });
-        printSortConfirmation("type");
-        persist();
+        };
     }
 
     /**
-     * Sorts tasks by deadline date. Tasks without dates come last.
+     * Creates a comparator for sorting by deadline date.
      */
-    public void sortByDeadline() {
-        tasks.sort((t1, t2) -> {
+    private Comparator<Task> createDeadlineComparator() {
+        return (t1, t2) -> {
             boolean t1HasDate = hasDeadlineDate(t1);
             boolean t2HasDate = hasDeadlineDate(t2);
 
             // Tasks with dates come first
             if (t1HasDate && !t2HasDate) return -1;
             if (!t1HasDate && t2HasDate) return 1;
+
             if (!t1HasDate && !t2HasDate) {
-                // Both have no dates, sort by description
                 return t1.getDescription().compareToIgnoreCase(t2.getDescription());
             }
 
-            // Both have dates, compare them
             return compareDeadlineDates(t1, t2);
-        });
-        printSortConfirmation("deadline");
-        persist();
+        };
     }
 
     /**
-     * Sorts tasks by completion status (incomplete tasks first).
+     * Creates a comparator for sorting by completion status.
      */
-    public void sortByStatus() {
-        tasks.sort((t1, t2) -> {
+    private Comparator<Task> createStatusComparator() {
+        return (t1, t2) -> {
             if (t1.isDone != t2.isDone) {
                 // Incomplete tasks (false) come first
                 return Boolean.compare(t1.isDone, t2.isDone);
             }
-            // Same status, sort by description
             return t1.getDescription().compareToIgnoreCase(t2.getDescription());
-        });
-        printSortConfirmation("status");
-        persist();
+        };
     }
 
-    // Private Helper Methods
+    // ========== Private Sorting Helper Methods ==========
 
-    private void validateTaskIndex(int index) throws BoshException {
-        if (isInvalidIndex(index)) {
-            throw new IndexOutOfRangeException(index);
-        }
-    }
-
-    private boolean isInvalidIndex(int index) {
-        return index < FIRST_TASK_INDEX || index > tasks.size();
-    }
-
-    private Task getTaskAtIndex(int oneBasedIndex) {
-        return tasks.get(oneBasedIndex - FIRST_TASK_INDEX);
-    }
-
-    private boolean isInvalidKeyword(String keyword) {
-        return keyword == null || keyword.trim().isEmpty();
-    }
-
-    private List<Task> findMatchingTasks(String keyword) {
-        String lowerCaseKeyword = keyword.toLowerCase();
-        List<Task> matchingTasks = new ArrayList<>();
-
-        for (Task task : tasks) {
-            if (taskMatchesKeyword(task, lowerCaseKeyword)) {
-                matchingTasks.add(task);
-            }
-        }
-        return matchingTasks;
-    }
-
-    private boolean taskMatchesKeyword(Task task, String lowerCaseKeyword) {
-        return task.getDescription().toLowerCase().contains(lowerCaseKeyword);
-    }
-
-    // Sorting helper methods
-
+    /**
+     * Gets the priority value for task type ordering.
+     */
     private int getTypePriority(Task task) {
         if (task instanceof Todo) return 1;
         if (task instanceof Deadline) return 2;
@@ -223,17 +279,22 @@ public class TaskList {
         return 4; // Unknown types come last
     }
 
+    /**
+     * Checks if a task is a deadline with a valid date.
+     */
     private boolean hasDeadlineDate(Task task) {
         if (!(task instanceof Deadline)) return false;
         Deadline deadline = (Deadline) task;
         return deadline.date != null || deadline.dateTime != null;
     }
 
+    /**
+     * Compares two deadline tasks by their dates.
+     */
     private int compareDeadlineDates(Task t1, Task t2) {
         Deadline d1 = (Deadline) t1;
         Deadline d2 = (Deadline) t2;
 
-        // Compare LocalDateTime first, then LocalDate
         if (d1.dateTime != null && d2.dateTime != null) {
             return d1.dateTime.compareTo(d2.dateTime);
         }
@@ -247,13 +308,29 @@ public class TaskList {
             return d1.date.compareTo(d2.date);
         }
 
-        // Fallback to description comparison
         return d1.getDescription().compareToIgnoreCase(d2.getDescription());
     }
 
-    // Printing methods
+    // ========== Private Display Methods ==========
 
-    private void printAddConfirmation(Task task) {
+    /**
+     * Displays the complete task list with numbering.
+     */
+    private void displayTaskList() {
+        printDivider();
+        System.out.println("Here are the tasks in your list: ");
+
+        for (int i = 0; i < tasks.size(); i++) {
+            int displayIndex = i + FIRST_TASK_INDEX;
+            System.out.println(displayIndex + "." + tasks.get(i));
+        }
+        printDivider();
+    }
+
+    /**
+     * Displays confirmation message after adding a task.
+     */
+    private void displayAddConfirmation(Task task) {
         printDivider();
         System.out.println("Got it. I've added this task:");
         System.out.println(task);
@@ -261,7 +338,18 @@ public class TaskList {
         printDivider();
     }
 
-    private void printDeleteConfirmation(Task removedTask) {
+    /**
+     * Displays confirmation message after marking/unmarking a task.
+     */
+    private void displayMarkConfirmation(Task task, boolean isMarked) {
+        String message = isMarked ? "Nice! Marked as done:" : "OK! Marked as not done:";
+        Ui.box(message, "  " + task);
+    }
+
+    /**
+     * Displays confirmation message after deleting a task.
+     */
+    private void displayDeleteConfirmation(Task removedTask) {
         Ui.box(
                 "Noted. I've removed this task:",
                 "  " + removedTask,
@@ -269,7 +357,10 @@ public class TaskList {
         );
     }
 
-    private void printSearchResults(List<Task> matchingTasks) {
+    /**
+     * Displays search results with numbering.
+     */
+    private void displaySearchResults(List<Task> matchingTasks) {
         printDivider();
         System.out.println("Here are the matching tasks in your list:");
 
@@ -280,21 +371,27 @@ public class TaskList {
         printDivider();
     }
 
-    private void printSortConfirmation(String sortBy) {
+    /**
+     * Displays confirmation message after sorting and shows the sorted list.
+     */
+    private void displaySortConfirmation(String sortBy) {
         Ui.box("Tasks have been sorted by " + sortBy + "!");
-        list(); // Show the sorted list
+        displayTaskList();
     }
 
-    public int size() {
-        return tasks.size();
-    }
-
+    /**
+     * Prints the divider line for formatting.
+     */
     private void printDivider() {
-        System.out.println(LINE);
+        System.out.println(DIVIDER_LINE);
     }
 
+    // ========== Private Storage Methods ==========
 
-    private void persist() {
+    /**
+     * Persists the current task list to storage if available.
+     */
+    private void saveToStorage() {
         if (storage == null) {
             return;
         }
